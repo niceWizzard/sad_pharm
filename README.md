@@ -1,5 +1,7 @@
 # SAD Pharmacy Inventory System
 
+This is a System Analysis Design (SAD) project
+
 ## Setup / Installation
 1. Make sure to have nodejs (v22.14.x) & python (13.3.x) installed
 2. Clone the repo
