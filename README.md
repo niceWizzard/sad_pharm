@@ -1,6 +1,6 @@
 # SAD Pharmacy Inventory System
 
-This is a System Analysis Design (SAD) project
+This is a System Analysis Design (SAD) project by BSM CS 3A from Bulacan State University.
 
 ## Setup / Installation
 1. Make sure to have nodejs (v22.14.x) & python (13.3.x) installed
