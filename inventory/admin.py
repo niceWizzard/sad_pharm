@@ -16,6 +16,6 @@ admin.site.register(
 
 @admin.register(InventoryStock)
 class InventoryStockAdmin(admin.ModelAdmin):
-    list_display = ("item", "expiration_date", "count", "date_of_delivery")
+    list_display = ("item", "expiration_date", "quantity", "date_of_delivery")
     list_filter = ("expiration_date",)
     search_fields = ("item__name",)

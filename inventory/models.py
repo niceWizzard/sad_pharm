@@ -148,7 +148,7 @@ class InventoryItem(models.Model):
 
     @cached_property
     def stocks(self) -> int:
-        return InventoryStock.objects.filter(item=self).aggregate(models.Sum("count"))["count__sum"]
+        return InventoryStock.objects.filter(item=self).aggregate(models.Sum("quantity"))["quantity__sum"]
 
     
     def clean(self):
@@ -170,7 +170,7 @@ class InventoryStock(models.Model):
     item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
     date_of_delivery = models.DateField(default=django.utils.timezone.now)
     expiration_date = models.DateField(default=django.utils.timezone.now)
-    count = models.PositiveIntegerField(default=0)
+    quantity = models.PositiveIntegerField(default=0)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
 
@@ -219,7 +219,7 @@ class InventoryTransaction(models.Model):
                 break  # Stop once we've allocated the required quantity
             
             # Determine how much to take from this stock
-            take_quantity = min(stock.count, self.quantity - total_created)
+            take_quantity = min(stock.quantity, self.quantity - total_created)
 
             stock_transactions.append(
                 StockRecord(
@@ -230,7 +230,7 @@ class InventoryTransaction(models.Model):
             )
 
             # Reduce stock count
-            stock.count -= take_quantity
+            stock.quantity -= take_quantity
             stock.save()
 
             total_created += take_quantity
@@ -257,7 +257,7 @@ class StockRecord(models.Model):
     @transaction_db.atomic
     def delete(self, *args, **kwargs):
         stock = InventoryStock.objects.get(id=self.stock.id)
-        stock.count += self.quantity
+        stock.quantity += self.quantity
         stock.save()
         super().delete(*args, **kwargs)
 
