@@ -26,7 +26,7 @@ def create_test_item():
 def create_test_stock(item : InventoryItem):
     return InventoryStock.objects.create(
         item=item,
-        count=5,
+        quantity=5,
         expiration_date=datetime.date.today(),
         date_of_delivery=datetime.date.today(),
     )
@@ -49,7 +49,7 @@ class ItemTestCase(TestCase):
 
     def test_default_stock_value(self):
         """Ensure stocks are initialized correctly"""
-        self.assertEqual(self.stock.count, 5)
+        self.assertEqual(self.stock.quantity, 5)
     
     def test_invalid_unit_type_raise_error(self):
         with self.assertRaises(ValidationError):
@@ -112,7 +112,7 @@ class ItemTestCase(TestCase):
 
     def test_expired_stocks_are_excluded_from_transaction(self):
         expired = create_test_stock(self.item)
-        expired.count = 100
+        expired.quantity = 100
         expired.expiration_date = datetime.date.today() - datetime.timedelta(1)
         expired.save()
         InventoryTransaction.objects.create(
@@ -121,10 +121,10 @@ class ItemTestCase(TestCase):
             quantity=5,
         )
         self.assertEqual(
-            InventoryStock.objects.get(id=self.stock.id).count,0
+            InventoryStock.objects.get(id=self.stock.id).quantity,0
         )
         self.assertEqual(
-            expired.count, 100
+            expired.quantity, 100
         )
     
     def test_stocks_property_is_accurate(self):
@@ -132,7 +132,7 @@ class ItemTestCase(TestCase):
             self.item.stocks, 
             5
         )
-        self.stock.count = 100
+        self.stock.quantity = 100
         self.stock.save()
         self.item.refresh_from_db()
         self.assertEqual(
@@ -165,14 +165,14 @@ class TransactionTestCase(TestCase):
         )
 
     def test_transaction_modifies_item_stock(self):
-        """Test that adding stock increases the item's stock count"""
+        """Test that adding stock increases the item's stock quantity"""
         InventoryTransaction.objects.create(
             item=self.item,
             created_by=self.user,
             quantity=5,
         )
         modified_stock = InventoryStock.objects.get(item=self.item)
-        self.assertEqual(modified_stock.count, 0)
+        self.assertEqual(modified_stock.quantity, 0)
 
     def test_transaction_creates_stock_record(self):
         transaction = InventoryTransaction.objects.create(
@@ -211,7 +211,7 @@ class TransactionTestCase(TestCase):
             quantity=2,
         )
         modified_stock = InventoryStock.objects.get(id=self.stock.id)
-        self.assertEqual(modified_stock.count, 1)  # 5 + 2 - 3 = 4
+        self.assertEqual(modified_stock.quantity, 1)  # 5 + 2 - 3 = 4
 
     def test_transaction_creates_many_stock_records(self):
         create_test_stock(self.item)
@@ -234,7 +234,7 @@ class TransactionTestCase(TestCase):
         transaction.quantity = 5
         transaction.save()
         self.assertEqual(
-            InventoryStock.objects.filter(item=self.item).aggregate(Sum('count'))["count__sum"],
+            InventoryStock.objects.filter(item=self.item).aggregate(Sum('quantity'))["quantity__sum"],
             0,
         )
         
@@ -248,7 +248,7 @@ class TransactionTestCase(TestCase):
         )
         transaction.delete()
 
-        modified_stock = InventoryStock.objects.filter(item=self.item).aggregate(Sum('count'))["count__sum"]
+        modified_stock = InventoryStock.objects.filter(item=self.item).aggregate(Sum('quantity'))["quantity__sum"]
         self.assertEqual(modified_stock, 10)
 
     def test_item_deletion_cascades(self):
@@ -277,7 +277,7 @@ class TransactionTestCase(TestCase):
             transaction.save()
     
     def test_many_transaction_is_consistent(self):
-        self.stock.count = 1000
+        self.stock.quantity = 1000
         self.stock.save()
         loop = 10
         for i in range(1,loop):
@@ -288,14 +288,14 @@ class TransactionTestCase(TestCase):
             )
             mod_stock = InventoryStock.objects.get(id=self.stock.id)
             self.assertEqual(
-                mod_stock.count,
-                self.stock.count - 50 * i
+                mod_stock.quantity,
+                self.stock.quantity - 50 * i
             )
 
         for transaction in InventoryTransaction.objects.filter(item=self.item):
             transaction.delete()
         self.assertEqual(
-            InventoryStock.objects.get(id=self.stock.id).count,
+            InventoryStock.objects.get(id=self.stock.id).quantity,
             1000
         )
     
@@ -310,15 +310,15 @@ class TransactionTestCase(TestCase):
             quantity=5,
         )
 
-        self.assertEqual(InventoryStock.objects.get(id=self.stock.id).count, 0)
-        self.assertEqual(InventoryStock.objects.get(id=stock2.id).count, 5)
+        self.assertEqual(InventoryStock.objects.get(id=self.stock.id).quantity, 0)
+        self.assertEqual(InventoryStock.objects.get(id=stock2.id).quantity, 5)
 
         InventoryTransaction.objects.create(
             item=self.item,
             created_by=self.user,
             quantity=5,
         )
-        self.assertEqual(InventoryStock.objects.get(id=stock2.id).count, 0)
+        self.assertEqual(InventoryStock.objects.get(id=stock2.id).quantity, 0)
 
 
 
@@ -346,15 +346,15 @@ class InventoryStockTestCase(TestCase):
             InventoryStock.objects.create(
                 item=self.item,
                 expiration_date=datetime.date.today() - datetime.timedelta(days=1),
-                count=5
+                quantity=5
             )
 
     def test_can_update_expired_stock(self):
         """Ensure modifying stock for an expired item is allowed"""
         self.stock.expiration_date = datetime.date.today() - datetime.timedelta(days=1)
-        self.stock.count = 5
+        self.stock.quantity = 5
         self.stock.save()
-        self.assertEqual(InventoryStock.objects.get(id=self.stock.id).count, 5)
+        self.assertEqual(InventoryStock.objects.get(id=self.stock.id).quantity, 5)
 
 
 class StockRecordTestCase(TestCase):
@@ -379,13 +379,13 @@ class StockRecordTestCase(TestCase):
             StockRecord.objects.filter(transaction=transaction).exists()
         )
         self.assertEqual(
-            self.stock.count,
+            self.stock.quantity,
             5
         )
     def test_deletion_of_records_restores_stock(self):
         create_test_stock(self.item)
         self.assertEqual(
-            InventoryStock.objects.filter(item=self.item).aggregate(Sum('count'))["count__sum"],
+            InventoryStock.objects.filter(item=self.item).aggregate(Sum('quantity'))["quantity__sum"],
             10
         )
         transaction = InventoryTransaction.objects.create(
@@ -399,6 +399,6 @@ class StockRecordTestCase(TestCase):
             StockRecord.objects.filter(transaction=transaction).exists()
         )
         self.assertEqual(
-            InventoryStock.objects.filter(item=self.item).aggregate(Sum('count'))["count__sum"],
+            InventoryStock.objects.filter(item=self.item).aggregate(Sum('quantity'))["quantity__sum"],
             10
         )
